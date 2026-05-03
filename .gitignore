@@ -1,0 +1,9 @@
+node_modules
+dist
+*.local
+.DS_Store
+
+# Секреты (токены Telegram и пр.) — не коммитить
+.env
+.env.*
+!.env.example
