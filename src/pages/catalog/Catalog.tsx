@@ -51,7 +51,7 @@ export default function Catalog() {
   const navigate = useNavigate();
   const { toggleFavorite, isFavorite } = useFavorites();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const MAX_DIMENSION = 800;
   const JPEG_QUALITY = 0.8;
 
@@ -67,7 +67,7 @@ export default function Catalog() {
     });
   };
 
-  const blobToDataUrl = (blob: Blob): Promise<string> =>
+  const readBlobAsDataUrl = (blob: Blob): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result));
@@ -118,10 +118,10 @@ export default function Catalog() {
     ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
     const blob = await canvasToBlob(canvas, "image/jpeg", JPEG_QUALITY);
 
-    return new File([blob], `ai-camera-${Date.now()}.jpg`, { type: "image/jpeg" });
+    return new File([blob], `ai-capture-${Date.now()}.jpg`, { type: "image/jpeg" });
   };
 
-  const sendToGenerator = async (): Promise<string> => {
+  const sendToGenerator = async (inputDataUrl: string): Promise<string> => {
     const hfToken = import.meta.env.VITE_HF_API_TOKEN;
     if (!hfToken) {
       throw new Error("Missing Hugging Face API token");
@@ -136,8 +136,7 @@ export default function Catalog() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          inputs:
-            "Upcycled fashion design inspired by sustainable fabrics, clean studio lighting, high detail, modern silhouette.",
+          inputs: inputDataUrl,
           options: { wait_for_model: true },
         }),
       },
@@ -153,7 +152,7 @@ export default function Catalog() {
     }
 
     const blob = await response.blob();
-    return blobToDataUrl(blob);
+    return readBlobAsDataUrl(blob);
   };
 
   const handleCameraClick = () => {
@@ -165,15 +164,16 @@ export default function Catalog() {
     if (!file) return;
 
     try {
-      setIsUploading(true);
-      await resizeImage(file);
-      const generatedUrl = await sendToGenerator();
+      setIsLoading(true);
+      const compressedFile = await resizeImage(file);
+      const inputDataUrl = await readBlobAsDataUrl(compressedFile);
+      const generatedUrl = await sendToGenerator(inputDataUrl);
       navigate("/ai-results", { replace: true, state: { generatedImage: generatedUrl } });
     } catch (error) {
       console.error("Upload or generation failed:", error);
       navigate("/ai-results", { replace: true });
     } finally {
-      setIsUploading(false);
+      setIsLoading(false);
       event.currentTarget.value = "";
     }
   };
@@ -251,7 +251,7 @@ export default function Catalog() {
         <Sparkles className="h-6 w-6" strokeWidth={2} />
       </button>
 
-      {isUploading ? (
+      {isLoading ? (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 px-6 text-white">
           <div className="flex flex-col items-center gap-4 text-center">
             <Loader2 className="h-10 w-10 animate-spin text-[#556B2F]" />
