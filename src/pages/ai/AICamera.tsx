@@ -1,29 +1,73 @@
+import type { ChangeEvent } from "react";
 import { useRef, useState } from "react";
 import { ChevronLeft, Loader2, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-type GenerateResponse = {
-  imageUrl?: string;
-  error?: string;
-};
 
 export default function AICamera() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const MAX_DIMENSION = 800;
+  const JPEG_QUALITY = 0.8;
 
   const handleShutter = () => {
     if (isUploading) return;
     fileInputRef.current?.click();
   };
 
-  const fileToBase64 = (file: File): Promise<string> =>
+  const blobToDataUrl = (blob: Blob): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsDataURL(file);
+      reader.onerror = () => reject(new Error("Failed to read image blob"));
+      reader.readAsDataURL(blob);
     });
+
+  const loadImage = (file: File): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(image);
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Failed to load image"));
+      };
+      image.src = objectUrl;
+    });
+
+  const canvasToBlob = (canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> =>
+    new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("Failed to export image"));
+        },
+        type,
+        quality,
+      );
+    });
+
+  const resizeImage = async (file: File): Promise<File> => {
+    const image = await loadImage(file);
+    const maxSide = Math.max(image.width, image.height);
+    const scale = maxSide > MAX_DIMENSION ? MAX_DIMENSION / maxSide : 1;
+    const targetWidth = Math.round(image.width * scale);
+    const targetHeight = Math.round(image.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context is unavailable");
+
+    ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+    const blob = await canvasToBlob(canvas, "image/jpeg", JPEG_QUALITY);
+
+    return new File([blob], `ai-camera-${Date.now()}.jpg`, { type: "image/jpeg" });
+  };
 
   const sendToTelegram = async (file: File) => {
     const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
@@ -50,44 +94,58 @@ export default function AICamera() {
     }
   };
 
-  const sendToGenerator = async (base64Image: string): Promise<string | null> => {
-    const response = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageBase64: base64Image }),
-    });
+  const sendToGenerator = async (): Promise<string> => {
+    const hfToken = import.meta.env.VITE_HF_API_TOKEN;
+    if (!hfToken) {
+      throw new Error("Missing Hugging Face API token");
+    }
+
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${hfToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs:
+            "Upcycled fashion design inspired by sustainable fabrics, clean studio lighting, high detail, modern silhouette.",
+          options: { wait_for_model: true },
+        }),
+      },
+    );
+
+    if (response.status === 503) {
+      throw new Error("Model loading");
+    }
 
     if (!response.ok) {
       const payload = await response.text();
       throw new Error(`Generation failed: ${response.status} ${payload}`);
     }
 
-    const data = (await response.json()) as GenerateResponse;
-    return data.imageUrl || null;
+    const blob = await response.blob();
+    return blobToDataUrl(blob);
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
 
     try {
       setIsUploading(true);
+      const compressedFile = await resizeImage(file);
 
-      const base64Image = await fileToBase64(file);
-
-      const [_, generatedUrl] = await Promise.all([
-        sendToTelegram(file),
-        sendToGenerator(base64Image),
+      const [generatedUrl] = await Promise.all([
+        sendToGenerator(),
+        sendToTelegram(compressedFile),
       ]);
 
-      if (generatedUrl) {
-        navigate("/ai-results", { replace: true, state: { generatedImage: generatedUrl } });
-      } else {
-        navigate("/ai-results", { replace: true });
-      }
+      navigate("/ai-results", { replace: true, state: { generatedImage: generatedUrl } });
     } catch (error) {
       console.error("Upload or generation failed:", error);
-      navigate("/ai-results", { replace: true });
+      navigate("/ai-results", { replace: true, state: { fallback: true } });
     } finally {
       setIsUploading(false);
       event.currentTarget.value = "";
@@ -165,8 +223,8 @@ export default function AICamera() {
       ) : (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black px-6 text-white">
           <div className="flex flex-col items-center gap-4 text-center">
-            <Loader2 className="h-10 w-10 animate-spin" />
-            <p className="text-base font-semibold">ИИ анализирует ткань и создает уникальный дизайн...</p>
+            <Loader2 className="h-10 w-10 animate-spin text-[#556B2F]" />
+            <p className="text-base font-semibold">Оптимизируем фото и запускаем ИИ...</p>
           </div>
         </div>
       )}
