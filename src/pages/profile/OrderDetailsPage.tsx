@@ -1,11 +1,27 @@
 import { Link, useParams } from "react-router-dom";
-import { getMockOrder } from "@/data/mockOrders";
+import { useApp } from "@/context/AppContext";
 
 const STEPS = ["Принят", "В работе", "Готов", "Доставлен"] as const;
 
+const STATUS_TO_PROGRESS: Record<string, number> = {
+  pending: 0,
+  in_progress: 1,
+  completed: 2,
+  cancelled: 0,
+};
+
 export default function OrderDetailsPage() {
   const { orderId } = useParams<{ orderId: string }>();
-  const order = orderId ? getMockOrder(orderId) : undefined;
+  const { orders } = useApp();
+  const order = orderId ? orders.find((o) => o.id === orderId) : undefined;
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+  };
 
   if (!order) {
     return (
@@ -24,19 +40,21 @@ export default function OrderDetailsPage() {
     );
   }
 
+  const progressIndex = STATUS_TO_PROGRESS[order.status] || 0;
+
   return (
     <div className="space-y-6 px-4 py-6">
       <section className="overflow-hidden rounded-2xl bg-surface shadow-card ring-1 ring-black/[0.04]">
         <div className="aspect-[16/9] bg-gradient-to-br from-accent/25 via-canvas to-surface" />
         <div className="space-y-2 p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-            Заказ №{order.id}
+            Заказ №{order.orderNumber}
           </p>
-          <h1 className="text-xl font-bold text-foreground">{order.title}</h1>
-          <p className="text-sm text-muted">{order.subtitle}</p>
+          <h1 className="text-xl font-bold text-foreground">{order.serviceTitle}</h1>
+          <p className="text-sm text-muted">{order.deliveryMethod}</p>
           <div className="flex flex-wrap gap-3 pt-2 text-sm">
-            <span className="font-bold text-accent">{order.totalLabel}</span>
-            <span className="text-muted">{order.createdAtLabel}</span>
+            <span className="font-bold text-accent">{order.priceLabel}</span>
+            <span className="text-muted">{formatDate(order.createdAt)}</span>
           </div>
         </div>
       </section>
@@ -47,7 +65,7 @@ export default function OrderDetailsPage() {
         </p>
         <div className="mt-4 flex gap-2">
           {STEPS.map((label, index) => {
-            const filled = index <= order.progressIndex;
+            const filled = index <= progressIndex;
             return (
               <div key={label} className="flex-1 space-y-2">
                 <div

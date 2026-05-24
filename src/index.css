@@ -3,11 +3,43 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Светлая тема */
+    --color-accent: 85 107 47; /* #556B2F */
+    --color-surface: 255 255 255; /* #FFFFFF */
+    --color-canvas: 245 245 245; /* #F5F5F5 */
+    --color-foreground: 33 33 33; /* #212121 */
+    --color-muted: 117 117 117; /* #757575 */
+    --color-destructive: 239 68 68; /* #EF4444 */
+    --color-border: 224 224 224; /* #E0E0E0 */
+  }
+
+  html.dark {
+    /* Темная тема */
+    --color-accent: 122 154 74; /* #7a9a4a */
+    --color-surface: 31 31 31; /* #1f1f1f */
+    --color-canvas: 42 42 42; /* #2a2a2a */
+    --color-foreground: 255 255 255; /* #ffffff */
+    --color-muted: 176 176 176; /* #b0b0b0 */
+    --color-destructive: 255 107 107; /* #ff6b6b */
+    --color-border: 64 64 64; /* #404040 */
+  }
+
   html {
     font-family: theme("fontFamily.sans");
   }
 
   body {
-    @apply bg-canvas text-foreground antialiased;
+    @apply bg-canvas text-foreground antialiased transition-colors duration-300;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

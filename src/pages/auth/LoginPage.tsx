@@ -1,14 +1,51 @@
 import type { FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Lock, Mail } from "lucide-react";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { useApp } from "@/context/AppContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { loginUser, currentUser } = useApp();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentUser.email) {
+      navigate("/catalog", { replace: true });
+    }
+  }, [currentUser.email, navigate]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    navigate("/catalog");
+    setError("");
+    setLoading(true);
+
+    if (!email.trim() || !password.trim()) {
+      setError("Пожалуйста, заполните все поля");
+      setLoading(false);
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Пожалуйста, введите корректный email");
+      setLoading(false);
+      return;
+    }
+
+    // Пытаемся войти
+    const result = loginUser(email, password);
+    setLoading(false);
+
+    if (result.success) {
+      navigate("/catalog");
+    } else {
+      setError(result.error || "Ошибка при входе");
+    }
   };
 
   return (
@@ -32,7 +69,10 @@ export default function LoginPage() {
                   name="email"
                   autoComplete="email"
                   placeholder="you@example.com"
-                  className="w-full rounded-2xl border border-border bg-surface py-3.5 pl-12 pr-4 text-foreground shadow-card outline-none transition-colors placeholder:text-muted focus:border-accent"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  className="w-full rounded-2xl border border-border bg-surface py-3.5 pl-12 pr-4 text-foreground shadow-card outline-none transition-colors placeholder:text-muted focus:border-accent disabled:opacity-50"
                 />
               </div>
             </label>
@@ -49,17 +89,27 @@ export default function LoginPage() {
                   name="password"
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="w-full rounded-2xl border border-border bg-surface py-3.5 pl-12 pr-4 text-foreground shadow-card outline-none transition-colors placeholder:text-muted focus:border-accent"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  className="w-full rounded-2xl border border-border bg-surface py-3.5 pl-12 pr-4 text-foreground shadow-card outline-none transition-colors placeholder:text-muted focus:border-accent disabled:opacity-50"
                 />
               </div>
             </label>
           </div>
 
+          {error && (
+            <p className="mt-4 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="mt-8 w-full rounded-2xl bg-accent py-4 text-base font-semibold text-surface shadow-card transition-transform active:scale-[0.98]"
+            disabled={loading}
+            className="mt-8 w-full rounded-2xl bg-accent py-4 text-base font-semibold text-surface shadow-card transition-transform active:scale-[0.98] disabled:opacity-50"
           >
-            Войти
+            {loading ? "Вход..." : "Войти"}
           </button>
 
           <p className="mt-auto pt-10 text-center text-sm text-muted">

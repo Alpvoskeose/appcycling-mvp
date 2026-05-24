@@ -20,8 +20,8 @@ export default function MainLayout() {
       <main
         className={
           showTabBar(pathname)
-            ? "flex-1 overflow-y-auto pb-[calc(6.25rem+env(safe-area-inset-bottom))]"
-            : "flex-1 overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+            ? "flex-1 overflow-y-auto no-scrollbar pb-[calc(6.25rem+env(safe-area-inset-bottom))]"
+            : "flex-1 overflow-y-auto no-scrollbar pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         }
       >
         <Outlet />

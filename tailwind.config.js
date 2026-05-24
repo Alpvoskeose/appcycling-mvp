@@ -1,23 +1,17 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        /** Акцент: кнопки, активные иконки, прогресс */
-        accent: "#556B2F",
-        /** Карточки, панели */
-        surface: "#FFFFFF",
-        /** Фон экранов */
-        canvas: "#F5F5F5",
-        /** Заголовки и основной текст */
-        foreground: "#212121",
-        /** Вторичный текст */
-        muted: "#757575",
-        /** Ошибки и удаление (дизайн-система) */
-        destructive: "#EF4444",
-        /** Неактивные обводки, разделители */
-        border: "#E0E0E0",
+        accent: "rgb(var(--color-accent) / <alpha-value>)",
+        surface: "rgb(var(--color-surface) / <alpha-value>)",
+        canvas: "rgb(var(--color-canvas) / <alpha-value>)",
+        foreground: "rgb(var(--color-foreground) / <alpha-value>)",
+        muted: "rgb(var(--color-muted) / <alpha-value>)",
+        destructive: "rgb(var(--color-destructive) / <alpha-value>)",
+        border: "rgb(var(--color-border) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

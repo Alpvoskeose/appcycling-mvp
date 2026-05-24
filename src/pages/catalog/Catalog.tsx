@@ -1,61 +1,119 @@
+import { Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useFavorites } from "@/context/FavoritesContext";
 
-const SERVICES = [
+interface Product {
+  id: string;
+  title: string;
+  price: string;
+  priceAmountKzt: number;
+  image: string;
+}
+
+const PRODUCTS: Product[] = [
   {
-    title: "Ремонт",
-    description: "Замена молний, заплатки и аккуратный ремонт любимых вещей без потери характера.",
+    id: "denim-jacket",
+    title: "Кастомная джинсовка",
+    price: "12 500 ₸",
+    priceAmountKzt: 12500,
     image:
-      "https://images.unsplash.com/photo-1558171813-4c088753af8f?auto=format&fit=crop&w=900&q=80",
-    alt: "Работа с денимом и инструментами портного",
+      "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800",
   },
   {
-    title: "Перешив",
-    description: "Новый крой из вашего материала: фасоны, которые сядут по фигуре и актуальным трендам.",
+    id: "tailored-blazer",
+    title: "Перешитый пиджак",
+    price: "15 000 ₸",
+    priceAmountKzt: 15000,
     image:
-      "https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?auto=format&fit=crop&w=900&q=80",
-    alt: "Швейная машина и изделия из текстиля",
+      "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&q=80&w=800",
   },
   {
-    title: "Кастомизация",
-    description: "Окраска, принты, вышивка и фурнитура — чтобы вещь стала по-настоящему вашей.",
+    id: "upcycle-shirt",
+    title: "Апсайкл рубашка",
+    price: "10 000 ₸",
+    priceAmountKzt: 10000,
     image:
-      "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=900&q=80",
-    alt: "Яркий текстиль и аксессуары для творческого апсайклинга",
+      "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&q=80&w=800",
   },
-] as const;
+  {
+    id: "denim-bag",
+    title: "Сумка из денима",
+    price: "8 900 ₸",
+    priceAmountKzt: 8900,
+    image:
+      "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=800",
+  },
+];
 
 export default function Catalog() {
   const navigate = useNavigate();
+  const { toggleFavorite, isFavorite } = useFavorites();
+
+  const handleFavoriteClick = (e: React.MouseEvent, product: Product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      priceAmountKzt: product.priceAmountKzt,
+      image: product.image,
+    });
+  };
 
   return (
     <div className="px-4 py-6">
       <p className="text-sm leading-relaxed text-muted">
-        Выберите базовую услугу — мы подключим ИИ-подбор стиля и материалов на следующих шагах.
+        Каталог апсайкл-товаров. Сохраняйте понравившиеся вещи в избранное и трансформируйте их с помощью ИИ.
       </p>
 
-      <section className="mt-6 space-y-4" aria-label="Услуги каталога">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {SERVICES.map(({ title, description, image, alt }) => (
-            <article
-              key={title}
-              className="overflow-hidden rounded-2xl bg-surface shadow-card ring-1 ring-black/[0.04]"
-            >
-              <div className="aspect-[4/3] overflow-hidden">
-                <img src={image} alt={alt} className="h-full w-full object-cover" loading="lazy" />
-              </div>
-              <div className="space-y-2 p-4">
-                <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-                <p className="text-sm leading-relaxed text-muted">{description}</p>
-                <button
-                  type="button"
-                  onClick={() => navigate("/ai-camera")}
-                  className="mt-3 w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-surface shadow-card transition-transform active:scale-[0.98]"
-                >
-                  Узнать подробнее
-                </button>
-              </div>
-            </article>
-          ))}
+      <section className="mt-6" aria-label="Каталог апсайкл-товаров">
+        <div className="grid grid-cols-2 gap-4">
+          {PRODUCTS.map((product) => {
+            const isFav = isFavorite(product.id);
+            return (
+              <article
+                key={product.id}
+                className="overflow-hidden rounded-2xl bg-surface shadow-card ring-1 ring-black/[0.04]"
+              >
+                <div className="relative overflow-hidden bg-canvas">
+                  <img
+                    src={product.image}
+                    alt={product.title}
+                    className="h-48 w-full rounded-t-2xl object-cover"
+                    loading="lazy"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => handleFavoriteClick(e, product)}
+                    className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-surface shadow-md transition-transform active:scale-95 hover:brightness-110"
+                    aria-label={isFav ? "Убрать из избранного" : "Добавить в избранное"}
+                  >
+                    <Heart
+                      className="h-6 w-6"
+                      strokeWidth={2}
+                      fill={isFav ? "#556B2F" : "none"}
+                      color={isFav ? "#556B2F" : "#212121"}
+                      aria-hidden
+                    />
+                  </button>
+                </div>
+                <div className="space-y-2 p-3">
+                  <h2 className="line-clamp-2 text-sm font-semibold text-foreground">
+                    {product.title}
+                  </h2>
+                  <p className="text-sm font-bold text-[#556B2F]">{product.price}</p>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/delivery")}
+                    className="flex w-full items-center justify-center rounded-xl bg-[#556B2F] py-2 text-xs font-semibold text-white transition-transform active:scale-[0.98]"
+                  >
+                    Хочу так же
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
     </div>

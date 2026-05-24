@@ -1,152 +1,98 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-type Phase = "viewfinder" | "processing";
 
 export default function AICamera() {
   const navigate = useNavigate();
-  const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
-  const [phase, setPhase] = useState<Phase>("viewfinder");
-  const [cameraReady, setCameraReady] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    if (!videoEl || !navigator.mediaDevices?.getUserMedia) {
-      setCameraReady(false);
-      return undefined;
-    }
+    if (!isProcessing) return undefined;
 
-    let stream: MediaStream | null = null;
-
-    navigator.mediaDevices
-      .getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } },
-        audio: false,
-      })
-      .then((s) => {
-        stream = s;
-        videoEl.srcObject = s;
-        void videoEl.play().catch(() => {});
-        setCameraReady(true);
-      })
-      .catch(() => setCameraReady(false));
-
-    return () => {
-      stream?.getTracks().forEach((t) => t.stop());
-      videoEl.srcObject = null;
-      setCameraReady(false);
-    };
-  }, [videoEl]);
-
-  useEffect(() => {
-    if (phase !== "processing") return undefined;
-
-    const ms = 3000 + Math.random() * 1000;
     const id = window.setTimeout(() => {
       navigate("/ai-results", { replace: true });
-    }, ms);
+    }, 3000);
 
     return () => window.clearTimeout(id);
-  }, [phase, navigate]);
+  }, [isProcessing, navigate]);
 
   const handleShutter = () => {
-    if (phase !== "viewfinder") return;
-    setPhase("processing");
+    if (isProcessing) return;
+    setIsProcessing(true);
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-black text-surface">
+    <div className="relative flex min-h-screen flex-col bg-black text-white">
       <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md transition-colors hover:bg-black/50"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20"
           aria-label="Назад"
         >
           <ChevronLeft className="h-7 w-7" strokeWidth={2} />
         </button>
-        <span className="rounded-full bg-black/35 px-3 py-1 text-xs font-medium backdrop-blur-md">
+
+        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-white/80 backdrop-blur-md">
           ИИ-камера
         </span>
-        <span className="w-11" aria-hidden />
+
+        <button
+          type="button"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20"
+          aria-label="Вспышка"
+        >
+          <Zap className="h-6 w-6" strokeWidth={2} />
+        </button>
       </header>
 
-      <div className="relative flex-1 overflow-hidden">
-        <video
-          ref={setVideoEl}
-          className={`absolute inset-0 h-full w-full object-cover ${cameraReady && phase === "viewfinder" ? "opacity-100" : "opacity-0"}`}
-          playsInline
-          muted
-          aria-hidden={phase === "processing"}
-        />
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden px-6">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0c0f0a] via-[#0b0d0a] to-black" />
 
-        {!cameraReady ? (
-          <div
-            className={`absolute inset-0 bg-gradient-to-b from-[#1a1f14] via-[#0d0f0a] to-black transition-opacity ${phase === "processing" ? "opacity-40" : "opacity-100"}`}
-            aria-hidden
-          />
-        ) : null}
+        <div className="relative z-10 flex h-64 w-64 items-center justify-center">
+          <div className="absolute inset-0 rounded-3xl border border-white/20" />
+          <div className="absolute inset-4 rounded-2xl border border-white/10" />
+          <div className="absolute inset-8 rounded-xl border border-white/10" />
 
-        {!cameraReady && phase === "viewfinder" ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-10 text-center">
-            <div className="mb-4 h-48 w-full max-w-sm rounded-2xl border border-white/15 bg-white/5 backdrop-blur-sm" />
-            <p className="text-sm text-white/75">
-              Разрешите доступ к камере или продолжите с демо-видоискателем — затвор всё равно запустит
-              ИИ-разбор вещи.
-            </p>
-          </div>
-        ) : null}
+          <span className="absolute left-0 top-0 h-8 w-8 border-l-2 border-t-2 border-white/70" />
+          <span className="absolute right-0 top-0 h-8 w-8 border-r-2 border-t-2 border-white/70" />
+          <span className="absolute bottom-0 left-0 h-8 w-8 border-b-2 border-l-2 border-white/70" />
+          <span className="absolute bottom-0 right-0 h-8 w-8 border-b-2 border-r-2 border-white/70" />
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-28 flex justify-center gap-3 opacity-80">
+          <div className="absolute h-10 w-10 rounded-full border border-white/20" />
+        </div>
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-32 flex justify-center gap-3 opacity-70">
           <span className="h-1 w-16 rounded-full bg-white/35" />
           <span className="h-1 w-10 rounded-full bg-white/20" />
           <span className="h-1 w-10 rounded-full bg-white/20" />
         </div>
 
-        <div className="absolute inset-x-0 bottom-[max(2rem,env(safe-area-inset-bottom))] flex flex-col items-center gap-6 px-8">
-          <p className="max-w-xs text-center text-xs leading-relaxed text-white/65">
-            Наведите на вещь и нажмите затвор — мы подберём трендовые апсайкл-концепты под ваш материал.
+        <div className="absolute inset-x-0 bottom-[max(2rem,env(safe-area-inset-bottom))] flex flex-col items-center gap-5">
+          <p className="max-w-xs text-center text-xs leading-relaxed text-white/60">
+            Наведите камеру на вещь — ИИ подберет апсайкл-идеи под ткань и фасон.
           </p>
           <button
             type="button"
             onClick={handleShutter}
-            disabled={phase !== "viewfinder"}
-            className="relative flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border-[5px] border-white/85 bg-white/10 shadow-[0_0_0_6px_rgba(255,255,255,0.08)] transition-transform enabled:active:scale-95 disabled:opacity-60"
-            aria-label="Сделать снимок"
+            className="relative flex h-[4.75rem] w-[4.75rem] items-center justify-center rounded-full border-[6px] border-white/85 bg-white/10 shadow-[0_0_0_8px_rgba(255,255,255,0.08)] transition-transform active:scale-95"
+            aria-label="Спуск затвора"
           >
-            <span className="h-[3rem] w-[3rem] rounded-full bg-white shadow-inner" />
+            <span className="h-[3.2rem] w-[3.2rem] rounded-full bg-white shadow-inner" />
           </button>
         </div>
       </div>
 
-      {phase === "processing" ? (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/88 px-8 backdrop-blur-md">
-          <div className="flex flex-col items-center gap-8">
+      {isProcessing ? (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 px-6 backdrop-blur-md">
+          <div className="flex flex-col items-center gap-6 text-center">
             <div
-              className="h-14 w-14 animate-spin rounded-full border-[3px] border-white/15 border-t-accent shadow-[0_0_40px_rgba(85,107,47,0.35)]"
+              className="h-14 w-14 animate-spin rounded-full border-[3px] border-white/20 border-t-white"
               aria-hidden
             />
-
-            <div className="max-w-md space-y-4 text-center">
-              <p className="text-lg font-semibold leading-snug text-surface">
-                Искусственный интеллект анализирует вещь и подбирает трендовые дизайны...
-              </p>
-              <p className="text-sm text-white/65">
-                Это займёт всего несколько секунд: распознаём фактуру, цвет и износ, затем собираем
-                превью апсайклинга.
-              </p>
-            </div>
-
-            <div className="flex w-full max-w-sm flex-col gap-3">
-              <div className="h-3 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full w-2/3 animate-pulse rounded-full bg-accent/80" />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-16 animate-pulse rounded-xl bg-white/10" />
-                ))}
-              </div>
-            </div>
+            <p className="text-lg font-semibold text-white">
+              ИИ анализирует ткань и фасон...
+            </p>
           </div>
         </div>
       ) : null}

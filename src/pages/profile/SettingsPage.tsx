@@ -1,5 +1,6 @@
-import { useState } from "react";
 import { ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useApp } from "@/context/AppContext";
 
 function Toggle({
   checked,
@@ -15,7 +16,7 @@ function Toggle({
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-8 w-[52px] shrink-0 items-center rounded-full transition-colors ${
-        checked ? "bg-accent" : "bg-border"
+        checked ? "bg-[#556B2F]" : "bg-[#E0E0E0]"
       }`}
     >
       <span
@@ -28,10 +29,29 @@ function Toggle({
 }
 
 export default function SettingsPage() {
-  const [pushOn, setPushOn] = useState(true);
-  const [emailOn, setEmailOn] = useState(false);
-  const [smsOn, setSmsOn] = useState(true);
-  const [darkOn, setDarkOn] = useState(false);
+  const navigate = useNavigate();
+  const { settings, updateSettings, logout } = useApp();
+
+  const handlePushChange = (checked: boolean) => {
+    updateSettings({ pushNotifications: checked });
+  };
+
+  const handleEmailChange = (checked: boolean) => {
+    updateSettings({ emailNotifications: checked });
+  };
+
+  const handleSmsChange = (checked: boolean) => {
+    updateSettings({ smsNotifications: checked });
+  };
+
+  const handleDarkThemeChange = (checked: boolean) => {
+    updateSettings({ darkTheme: checked });
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <div className="space-y-8 px-4 py-6">
@@ -42,15 +62,24 @@ export default function SettingsPage() {
         <div className="mt-4 divide-y divide-border rounded-2xl bg-surface shadow-card ring-1 ring-black/[0.04]">
           <div className="flex items-center justify-between gap-4 px-4 py-4">
             <span className="text-sm font-medium text-foreground">Push-уведомления</span>
-            <Toggle checked={pushOn} onChange={setPushOn} />
+            <Toggle
+              checked={settings.pushNotifications}
+              onChange={handlePushChange}
+            />
           </div>
           <div className="flex items-center justify-between gap-4 px-4 py-4">
             <span className="text-sm font-medium text-foreground">Email</span>
-            <Toggle checked={emailOn} onChange={setEmailOn} />
+            <Toggle
+              checked={settings.emailNotifications}
+              onChange={handleEmailChange}
+            />
           </div>
           <div className="flex items-center justify-between gap-4 px-4 py-4">
             <span className="text-sm font-medium text-foreground">SMS</span>
-            <Toggle checked={smsOn} onChange={setSmsOn} />
+            <Toggle
+              checked={settings.smsNotifications}
+              onChange={handleSmsChange}
+            />
           </div>
         </div>
       </section>
@@ -65,10 +94,13 @@ export default function SettingsPage() {
         <div className="mt-4 rounded-2xl bg-surface px-4 py-4 shadow-card ring-1 ring-black/[0.04]">
           <div className="flex items-center justify-between gap-4">
             <span className="text-sm font-medium text-foreground">Тёмная тема</span>
-            <Toggle checked={darkOn} onChange={setDarkOn} />
+            <Toggle
+              checked={settings.darkTheme}
+              onChange={handleDarkThemeChange}
+            />
           </div>
           <p className="mt-3 text-xs text-muted">
-            Полноценная тёмная тема для MVP пока не подключена — переключатель демонстрирует UX.
+            Активируйте тёмную тему для более комфортного использования ночью. Изменение применяется сразу.
           </p>
         </div>
       </section>
@@ -80,7 +112,7 @@ export default function SettingsPage() {
         <div className="mt-4 divide-y divide-border rounded-2xl bg-surface shadow-card ring-1 ring-black/[0.04]">
           <button
             type="button"
-            className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left hover:bg-canvas"
+            className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left hover:bg-canvas transition-colors"
           >
             <span className="text-sm font-medium text-foreground">Язык приложения</span>
             <span className="inline-flex items-center gap-2 text-sm text-muted">
@@ -90,14 +122,14 @@ export default function SettingsPage() {
           </button>
           <button
             type="button"
-            className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left hover:bg-canvas"
+            className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left hover:bg-canvas transition-colors"
           >
             <span className="text-sm font-medium text-foreground">Политика конфиденциальности</span>
             <ChevronRight className="h-5 w-5 text-muted" aria-hidden />
           </button>
           <button
             type="button"
-            className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left hover:bg-canvas"
+            className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left hover:bg-canvas transition-colors"
           >
             <span className="text-sm font-medium text-foreground">Оценить приложение</span>
             <ChevronRight className="h-5 w-5 text-muted" aria-hidden />
@@ -108,13 +140,14 @@ export default function SettingsPage() {
       <section className="space-y-3 pb-6">
         <button
           type="button"
-          className="w-full rounded-2xl py-3 text-center text-sm font-medium text-muted hover:bg-surface"
+          onClick={handleLogout}
+          className="w-full rounded-2xl py-3 text-center text-sm font-medium text-muted hover:bg-surface transition-colors"
         >
           Выйти из аккаунта
         </button>
         <button
           type="button"
-          className="w-full rounded-2xl py-3 text-center text-sm font-medium text-red-600 hover:bg-red-50"
+          className="w-full rounded-2xl py-3 text-center text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
         >
           Удалить аккаунт
         </button>

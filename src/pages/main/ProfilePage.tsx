@@ -6,22 +6,44 @@ import {
   Package,
   Settings,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useApp } from "@/context/AppContext";
 
 const ROW_CLASS =
   "flex items-center gap-4 rounded-2xl bg-surface px-4 py-4 shadow-card ring-1 ring-black/[0.04] transition-colors hover:bg-canvas active:scale-[0.99]";
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
+  const { currentUser, logout } = useApp();
+
+  // Инициалы пользователя или дефолтные
+  const initials = currentUser.name
+    ? currentUser.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "AC";
+
+  const displayName = currentUser.name || "";
+  const displayEmail = currentUser.email || "";
+
+  const handleLogout = () => {
+    logout();
+    navigate("/", { replace: true });
+  };
+
   return (
     <div className="space-y-6 px-4 py-6">
       <section className="rounded-2xl bg-surface p-6 shadow-card ring-1 ring-black/[0.04]">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/15 text-lg font-bold text-accent">
-            AC
+            {initials}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-lg font-semibold text-foreground">Алексей Клиентов</p>
-            <p className="truncate text-sm text-muted">alex@appcycling.demo</p>
+            <p className="truncate text-lg font-semibold text-foreground">{displayName}</p>
+            <p className="truncate text-sm text-muted">{displayEmail}</p>
           </div>
         </div>
         <Link
@@ -34,6 +56,13 @@ export default function ProfilePage() {
           </span>
           <ChevronRight className="h-5 w-5 text-muted" aria-hidden />
         </Link>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="mt-4 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-destructive shadow-card transition-transform active:scale-[0.99]"
+        >
+          Выйти
+        </button>
       </section>
 
       <nav className="space-y-3" aria-label="Разделы профиля">

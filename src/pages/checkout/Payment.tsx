@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { submitOrder } from "@/api/submitOrder";
 import { useOrder } from "@/context/OrderContext";
+import { useApp } from "@/context/AppContext";
 import type { PaymentMethod } from "@/context/orderTypes";
 
 function formatMoneyKzt(amount: number): string {
@@ -13,6 +14,7 @@ function formatMoneyKzt(amount: number): string {
 export default function Payment() {
   const navigate = useNavigate();
   const { order, setPaymentMethod } = useOrder();
+  const { addOrder, addNotification } = useApp();
 
   const [method, setMethod] = useState<PaymentMethod>("card");
   const [loading, setLoading] = useState(false);
@@ -46,6 +48,32 @@ export default function Payment() {
     }
 
     setPaymentMethod(method);
+
+    // Генерируем номер заказа
+    const orderNumber = `#${Math.floor(Math.random() * 100000)}`;
+
+    // Добавляем заказ в Context (имитация БД)
+    addOrder({
+      orderNumber,
+      serviceTitle: order.serviceTitle ?? "Услуга",
+      priceLabel: order.priceLabel ?? "—",
+      priceAmountKzt: order.priceAmountKzt ?? 0,
+      deliveryMethod: order.deliveryMethod ?? "courier",
+      paymentMethod: method,
+      status: "pending",
+    });
+
+    // Создаём уведомление о новом заказе
+    const timeNow = new Date();
+    const timeLabel = `${timeNow.toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`;
+
+    addNotification({
+      title: `Ваш заказ ${orderNumber} успешно оформлен и передан курьеру. Спасибо за доверие!`,
+      timeLabel: `сегодня · ${timeLabel}`,
+      unread: true,
+    });
+
+    // Редирект на статус
     navigate("/status");
   };
 
