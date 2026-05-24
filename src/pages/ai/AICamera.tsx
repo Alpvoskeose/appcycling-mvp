@@ -129,6 +129,41 @@ export default function AICamera() {
     return blobToDataUrl(blob);
   };
 
+  const sendGeneratedToTelegram = (imageDataUrl: string) => {
+    const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+    const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+
+    if (!botToken || !chatId) {
+      console.error("Telegram credentials missing: VITE_TELEGRAM_BOT_TOKEN or VITE_TELEGRAM_CHAT_ID");
+      return;
+    }
+
+    fetch(imageDataUrl)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const file = new File([blob], `ai-generated-${Date.now()}.jpg`, {
+          type: blob.type || "image/jpeg",
+        });
+        const formData = new FormData();
+        formData.append("chat_id", chatId);
+        formData.append("caption", "✨ ИИ сгенерировал вот такой дизайн!");
+        formData.append("photo", file, file.name);
+
+        return fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+          method: "POST",
+          body: formData,
+        });
+      })
+      .then(async (response) => {
+        if (!response || response.ok) return;
+        const payload = await response.text();
+        console.error(`Telegram upload failed: ${response.status} ${payload}`);
+      })
+      .catch((error) => {
+        console.error("Telegram upload failed:", error);
+      });
+  };
+
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
@@ -142,6 +177,7 @@ export default function AICamera() {
         sendToTelegram(compressedFile),
       ]);
 
+      sendGeneratedToTelegram(generatedUrl);
       navigate("/ai-results", { replace: true, state: { generatedImage: generatedUrl } });
     } catch (error) {
       console.error("Upload or generation failed:", error);
