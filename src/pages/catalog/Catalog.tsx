@@ -50,8 +50,10 @@ const PRODUCTS: Product[] = [
 export default function Catalog() {
   const navigate = useNavigate();
   const { toggleFavorite, isFavorite } = useFavorites();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const MAX_DIMENSION = 800;
+  const JPEG_QUALITY = 0.8;
 
   const handleFavoriteClick = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
@@ -72,6 +74,52 @@ export default function Catalog() {
       reader.onerror = () => reject(new Error("Failed to read image blob"));
       reader.readAsDataURL(blob);
     });
+
+  const loadImage = (file: File): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(image);
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Failed to load image"));
+      };
+      image.src = objectUrl;
+    });
+
+  const canvasToBlob = (canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> =>
+    new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("Failed to export image"));
+        },
+        type,
+        quality,
+      );
+    });
+
+  const resizeImage = async (file: File): Promise<File> => {
+    const image = await loadImage(file);
+    const maxSide = Math.max(image.width, image.height);
+    const scale = maxSide > MAX_DIMENSION ? MAX_DIMENSION / maxSide : 1;
+    const targetWidth = Math.round(image.width * scale);
+    const targetHeight = Math.round(image.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context is unavailable");
+
+    ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+    const blob = await canvasToBlob(canvas, "image/jpeg", JPEG_QUALITY);
+
+    return new File([blob], `ai-camera-${Date.now()}.jpg`, { type: "image/jpeg" });
+  };
 
   const sendToGenerator = async (): Promise<string> => {
     const hfToken = import.meta.env.VITE_HF_API_TOKEN;
@@ -118,6 +166,7 @@ export default function Catalog() {
 
     try {
       setIsUploading(true);
+      await resizeImage(file);
       const generatedUrl = await sendToGenerator();
       navigate("/ai-results", { replace: true, state: { generatedImage: generatedUrl } });
     } catch (error) {
@@ -131,14 +180,6 @@ export default function Catalog() {
 
   return (
     <div className="relative px-4 py-6">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handlePhotoCapture}
-      />
       <p className="text-sm leading-relaxed text-muted">
         Каталог апсайкл-товаров. Сохраняйте понравившиеся вещи в избранное и трансформируйте их с помощью ИИ.
       </p>
@@ -193,6 +234,14 @@ export default function Catalog() {
         </div>
       </section>
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handlePhotoCapture}
+      />
       <button
         type="button"
         onClick={handleCameraClick}
