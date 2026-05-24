@@ -1,7 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-const PROMPT =
-  "Create a highly detailed, photorealistic editorial fashion image of an upcycled garment made from old clothes. The design should be modern, stylish, and sustainable, displayed on a mannequin or model with studio lighting. Color palette: olive green and neutral tones.";
+const BASE_PROMPT =
+  "High fashion editorial photo of a sustainable upcycled garment made from old clothes, modern streetwear design, olive green and neutral tones, studio lighting, photorealistic, 8k";
+
+const HF_MODEL_URL =
+  "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -9,48 +12,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    res.status(500).json({ error: "OPENAI_API_KEY is not set" });
+  const hfToken = process.env.HF_API_TOKEN;
+  if (!hfToken) {
+    res.status(500).json({ error: "HF_API_TOKEN is not set" });
     return;
   }
 
   try {
-    const { imageBase64 } = req.body || {};
+    const { imageBase64, promptText } = req.body || {};
 
     if (!imageBase64 || typeof imageBase64 !== "string") {
       res.status(400).json({ error: "Missing imageBase64" });
       return;
     }
 
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
+    const promptSuffix = typeof promptText === "string" && promptText.trim().length > 0
+      ? ` ${promptText.trim()}`
+      : "";
+
+    const response = await fetch(HF_MODEL_URL, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${hfToken}`,
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Accept: "image/*",
       },
       body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: PROMPT,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard",
+        inputs: `${BASE_PROMPT}${promptSuffix}`,
       }),
     });
 
     if (!response.ok) {
       const payload = await response.text();
-      res.status(500).json({ error: `OpenAI error: ${payload}` });
+      res.status(500).json({ error: `Hugging Face error: ${payload}` });
       return;
     }
 
-    const data = (await response.json()) as { data?: Array<{ url?: string }> };
-    const imageUrl = data?.data?.[0]?.url;
-
-    if (!imageUrl) {
-      res.status(500).json({ error: "No image URL returned from OpenAI" });
-      return;
-    }
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const imageUrl = `data:${contentType};base64,${base64}`;
 
     res.status(200).json({ imageUrl });
   } catch (error) {
