@@ -19,6 +19,7 @@ import MyOrdersPage from "./pages/profile/MyOrdersPage";
 import NotificationsPage from "./pages/profile/NotificationsPage";
 import OrderDetailsPage from "./pages/profile/OrderDetailsPage";
 import SettingsPage from "./pages/profile/SettingsPage";
+import AICamera from "./pages/ai/AICamera";
 import AIResults from "./pages/ai/AIResults";
 import Constructor from "./pages/ai/Constructor";
 import Delivery from "./pages/checkout/Delivery";
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
       },
 
       {
+    { path: "ai-camera", element: <AICamera /> },
         element: <MainLayout />,
         children: [
           { path: "home", element: <Catalog /> },
