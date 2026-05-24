@@ -1,4 +1,3 @@
-import type { ChangeEvent } from "react";
 import { useRef, useState } from "react";
 import { Heart, Loader2, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -48,12 +47,12 @@ const PRODUCTS: Product[] = [
 ];
 
 export default function Catalog() {
-  const navigate = useNavigate();
   const { toggleFavorite, isFavorite } = useFavorites();
+  
+  // Ссылки и стейты для ИИ-камеры
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const MAX_DIMENSION = 800;
-  const JPEG_QUALITY = 0.8;
+  const navigate = useNavigate();
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const handleFavoriteClick = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
@@ -67,112 +66,26 @@ export default function Catalog() {
     });
   };
 
-  const readBlobAsDataUrl = (blob: Blob): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(new Error("Failed to read image blob"));
-      reader.readAsDataURL(blob);
-    });
+  // Обработчик получения фото с системной камеры
+  const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setIsAiLoading(true); // Включаем черный экран загрузки
 
-  const loadImage = (file: File): Promise<HTMLImageElement> =>
-    new Promise((resolve, reject) => {
-      const objectUrl = URL.createObjectURL(file);
-      const image = new Image();
-      image.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        resolve(image);
-      };
-      image.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error("Failed to load image"));
-      };
-      image.src = objectUrl;
-    });
-
-  const canvasToBlob = (canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> =>
-    new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("Failed to export image"));
-        },
-        type,
-        quality,
-      );
-    });
-
-  const resizeImage = async (file: File): Promise<File> => {
-    const image = await loadImage(file);
-    const maxSide = Math.max(image.width, image.height);
-    const scale = maxSide > MAX_DIMENSION ? MAX_DIMENSION / maxSide : 1;
-    const targetWidth = Math.round(image.width * scale);
-    const targetHeight = Math.round(image.height * scale);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas context is unavailable");
-
-    ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
-    const blob = await canvasToBlob(canvas, "image/jpeg", JPEG_QUALITY);
-
-    return new File([blob], `ai-capture-${Date.now()}.jpg`, { type: "image/jpeg" });
-  };
-
-  const sendToGenerator = async (inputDataUrl: string): Promise<void> => {
-    const hfToken = import.meta.env.VITE_HF_API_TOKEN;
-    if (!hfToken) {
-      throw new Error("Missing Hugging Face API token");
-    }
-
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${hfToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          inputs: inputDataUrl,
-          options: { wait_for_model: true },
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const payload = await response.text();
-      throw new Error(`Generation failed: ${response.status} ${payload}`);
-    }
-  };
-
-  const handlePhotoCapture = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsLoading(true);
-      const compressedFile = await resizeImage(file);
-      const inputDataUrl = await readBlobAsDataUrl(compressedFile);
-      await sendToGenerator(inputDataUrl);
-    } catch (error) {
-      console.error("Upload or generation failed:", error);
-    } finally {
-      navigate("/ai-results", { replace: true });
-      setIsLoading(false);
-      event.currentTarget.value = "";
+      // Имитация загрузки и обработки ИИ (3 секунды)
+      setTimeout(() => {
+        setIsAiLoading(false);
+        navigate("/ai-results"); // Редирект на результаты
+      }, 3000);
     }
   };
 
   return (
-    <div className="relative px-4 py-6">
+    <div className="relative px-4 py-6 min-h-screen">
       <p className="text-sm leading-relaxed text-muted">
         Каталог апсайкл-товаров. Сохраняйте понравившиеся вещи в избранное и трансформируйте их с помощью ИИ.
       </p>
 
-      <section className="mt-6" aria-label="Каталог апсайкл-товаров">
+      <section className="mt-6 pb-24" aria-label="Каталог апсайкл-товаров">
         <div className="grid grid-cols-2 gap-4">
           {PRODUCTS.map((product) => {
             const isFav = isFavorite(product.id);
@@ -195,7 +108,7 @@ export default function Catalog() {
                     aria-label={isFav ? "Убрать из избранного" : "Добавить в избранное"}
                   >
                     <Heart
-                      className="h-6 w-6"
+                      className="h-6 w-6 transition-colors"
                       strokeWidth={2}
                       fill={isFav ? "#556B2F" : "none"}
                       color={isFav ? "#556B2F" : "#212121"}
@@ -211,7 +124,7 @@ export default function Catalog() {
                   <button
                     type="button"
                     onClick={() => navigate("/delivery")}
-                    className="flex w-full items-center justify-center rounded-xl bg-[#556B2F] py-2 text-xs font-semibold text-white transition-transform active:scale-[0.98]"
+                    className="flex w-full items-center justify-center rounded-xl bg-[#556B2F] py-2 text-xs font-semibold text-white transition-transform active:scale-95"
                   >
                     Хочу так же
                   </button>
@@ -222,31 +135,42 @@ export default function Catalog() {
         </div>
       </section>
 
+      {/* --- НАЧАЛО БЛОКА ИИ-КАМЕРЫ --- */}
+
+      {/* Скрытый инпут, который вызывает нативную камеру телефона */}
       <input
-        ref={fileInputRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="hidden"
+        ref={fileInputRef}
         onChange={handlePhotoCapture}
       />
+
+      {/* Плавающая оливковая кнопка со звездочкой (теперь по центру) */}
       <button
-        type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#556B2F] text-white shadow-lg transition-transform active:scale-95"
-        aria-label="ИИ-камера"
+        className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#556B2F] p-4 rounded-full shadow-2xl z-40 flex items-center justify-center transition-all hover:bg-[#435525] active:scale-90"
+        aria-label="Сгенерировать дизайн"
       >
-        <Sparkles className="h-6 w-6" strokeWidth={2} />
+        <Sparkles className="text-white w-8 h-8" />
       </button>
 
-      {isLoading ? (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 px-6 text-white">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <Loader2 className="h-10 w-10 animate-spin text-[#556B2F]" />
-            <p className="text-base font-semibold">ИИ генерирует изображение...</p>
-          </div>
+      {/* Полноэкранный лоадер */}
+      {isAiLoading && (
+        <div className="fixed inset-0 bg-black/85 z-50 flex flex-col items-center justify-center text-white backdrop-blur-sm">
+          <Loader2 className="w-16 h-16 animate-spin text-[#556B2F] mb-6" />
+          <h2 className="text-2xl font-bold text-center px-4">
+            ИИ генерирует изображение...
+            <br />
+            <span className="text-sm font-normal text-gray-300 mt-2 block">
+              Пожалуйста, подождите
+            </span>
+          </h2>
         </div>
-      ) : null}
+      )}
+
+      {/* --- КОНЕЦ БЛОКА ИИ-КАМЕРЫ --- */}
     </div>
   );
 }
