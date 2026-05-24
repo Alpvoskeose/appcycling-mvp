@@ -58,8 +58,12 @@ export default function Catalog() {
       price: product.price,
       priceAmountKzt: product.priceAmountKzt,
       image: product.image,
-    return (
-      <div className="relative px-4 py-6">
+    });
+  };
+
+  return (
+    <div className="relative px-4 py-6">
+      <p className="text-sm leading-relaxed text-muted">
         Каталог апсайкл-товаров. Сохраняйте понравившиеся вещи в избранное и трансформируйте их с помощью ИИ.
       </p>
 

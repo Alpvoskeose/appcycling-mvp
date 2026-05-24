@@ -43,7 +43,6 @@ export const router = createBrowserRouter([
       },
 
       {
-    { path: "ai-camera", element: <AICamera /> },
         element: <MainLayout />,
         children: [
           { path: "home", element: <Catalog /> },
@@ -63,6 +62,7 @@ export const router = createBrowserRouter([
         ],
       },
 
+      { path: "ai-camera", element: <AICamera /> },
       { path: "ai-results", element: <AIResults /> },
       { path: "constructor", element: <Constructor /> },
 
