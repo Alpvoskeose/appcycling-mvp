@@ -186,7 +186,7 @@ export default function Catalog() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoCapture = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
 
@@ -217,7 +217,7 @@ export default function Catalog() {
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={handleFileChange}
+        onChange={handlePhotoCapture}
       />
 
       <p className="text-sm leading-relaxed text-muted">
