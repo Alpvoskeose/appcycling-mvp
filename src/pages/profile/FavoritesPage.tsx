@@ -29,10 +29,10 @@ export default function FavoritesPage() {
         </p>
         <button
           type="button"
-          onClick={() => navigate("/ai-camera")}
+          onClick={() => navigate("/catalog")}
           className="mt-8 rounded-2xl bg-accent px-6 py-3 text-sm font-semibold text-surface shadow-card transition-transform active:scale-[0.98]"
         >
-          Запустить ИИ-камеру
+          Открыть каталог
         </button>
       </div>
     );

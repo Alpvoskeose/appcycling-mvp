@@ -81,6 +81,14 @@ export default function AIResults() {
         <h1 className="text-base font-bold text-[#212121]">Ваши варианты апсайклинга</h1>
       </header>
 
+      {!generatedImage ? (
+        <div className="px-4 pt-6">
+          <div className="rounded-2xl border border-[#E5E5E5] bg-[#F6F7F2] px-4 py-3">
+            <p className="text-sm font-semibold text-[#556B2F]">Нейросеть перегружена</p>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-4 px-4 pb-10 pt-6">
         {variants.map((variant) => {
           const isSelected = selectedId === variant.id;

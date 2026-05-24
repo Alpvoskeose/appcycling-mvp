@@ -52,8 +52,6 @@ export default function Catalog() {
   const { toggleFavorite, isFavorite } = useFavorites();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const MAX_DIMENSION = 800;
-  const JPEG_QUALITY = 0.8;
 
   const handleFavoriteClick = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
@@ -74,77 +72,6 @@ export default function Catalog() {
       reader.onerror = () => reject(new Error("Failed to read image blob"));
       reader.readAsDataURL(blob);
     });
-
-  const loadImage = (file: File): Promise<HTMLImageElement> =>
-    new Promise((resolve, reject) => {
-      const objectUrl = URL.createObjectURL(file);
-      const image = new Image();
-      image.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        resolve(image);
-      };
-      image.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error("Failed to load image"));
-      };
-      image.src = objectUrl;
-    });
-
-  const canvasToBlob = (canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> =>
-    new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("Failed to export image"));
-        },
-        type,
-        quality,
-      );
-    });
-
-  const resizeImage = async (file: File): Promise<File> => {
-    const image = await loadImage(file);
-    const maxSide = Math.max(image.width, image.height);
-    const scale = maxSide > MAX_DIMENSION ? MAX_DIMENSION / maxSide : 1;
-    const targetWidth = Math.round(image.width * scale);
-    const targetHeight = Math.round(image.height * scale);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas context is unavailable");
-
-    ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
-    const blob = await canvasToBlob(canvas, "image/jpeg", JPEG_QUALITY);
-
-    return new File([blob], `ai-camera-${Date.now()}.jpg`, { type: "image/jpeg" });
-  };
-
-  const sendToTelegram = async (file: File) => {
-    const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-    const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-
-    if (!botToken || !chatId) {
-      console.error("Telegram credentials missing: VITE_TELEGRAM_BOT_TOKEN or VITE_TELEGRAM_CHAT_ID");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("chat_id", chatId);
-    formData.append("caption", "📸 Новое фото для ИИ-генерации!");
-    formData.append("photo", file, file.name);
-
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const payload = await response.text();
-      throw new Error(`Telegram upload failed: ${response.status} ${payload}`);
-    }
-  };
 
   const sendToGenerator = async (): Promise<string> => {
     const hfToken = import.meta.env.VITE_HF_API_TOKEN;
@@ -182,7 +109,6 @@ export default function Catalog() {
   };
 
   const handleCameraClick = () => {
-    if (isUploading) return;
     fileInputRef.current?.click();
   };
 
@@ -192,9 +118,6 @@ export default function Catalog() {
 
     try {
       setIsUploading(true);
-      const compressedFile = await resizeImage(file);
-
-      await sendToTelegram(compressedFile);
       const generatedUrl = await sendToGenerator();
       navigate("/ai-results", { replace: true, state: { generatedImage: generatedUrl } });
     } catch (error) {
@@ -283,7 +206,7 @@ export default function Catalog() {
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 px-6 text-white">
           <div className="flex flex-col items-center gap-4 text-center">
             <Loader2 className="h-10 w-10 animate-spin text-[#556B2F]" />
-            <p className="text-base font-semibold">Оптимизируем фото и запускаем ИИ...</p>
+            <p className="text-base font-semibold">ИИ генерирует изображение...</p>
           </div>
         </div>
       ) : null}

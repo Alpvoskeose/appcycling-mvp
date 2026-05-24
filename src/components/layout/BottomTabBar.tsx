@@ -88,7 +88,7 @@ export function BottomTabBar() {
         </ul>
 
         <NavLink
-          to="/ai-camera"
+          to="/catalog"
           className={({ isActive }) =>
             [
               "absolute left-1/2 top-0 flex h-[3.75rem] w-[3.75rem] -translate-x-1/2 -translate-y-[45%] items-center justify-center rounded-full bg-accent text-surface shadow-card ring-4 ring-surface transition-[transform,filter] active:scale-95",
