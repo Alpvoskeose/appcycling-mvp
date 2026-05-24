@@ -121,7 +121,7 @@ export default function Catalog() {
     return new File([blob], `ai-capture-${Date.now()}.jpg`, { type: "image/jpeg" });
   };
 
-  const sendToGenerator = async (inputDataUrl: string): Promise<string> => {
+  const sendToGenerator = async (inputDataUrl: string): Promise<void> => {
     const hfToken = import.meta.env.VITE_HF_API_TOKEN;
     if (!hfToken) {
       throw new Error("Missing Hugging Face API token");
@@ -142,21 +142,10 @@ export default function Catalog() {
       },
     );
 
-    if (response.status === 503) {
-      throw new Error("Model loading");
-    }
-
     if (!response.ok) {
       const payload = await response.text();
       throw new Error(`Generation failed: ${response.status} ${payload}`);
     }
-
-    const blob = await response.blob();
-    return readBlobAsDataUrl(blob);
-  };
-
-  const handleCameraClick = () => {
-    fileInputRef.current?.click();
   };
 
   const handlePhotoCapture = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -167,12 +156,11 @@ export default function Catalog() {
       setIsLoading(true);
       const compressedFile = await resizeImage(file);
       const inputDataUrl = await readBlobAsDataUrl(compressedFile);
-      const generatedUrl = await sendToGenerator(inputDataUrl);
-      navigate("/ai-results", { replace: true, state: { generatedImage: generatedUrl } });
+      await sendToGenerator(inputDataUrl);
     } catch (error) {
       console.error("Upload or generation failed:", error);
-      navigate("/ai-results", { replace: true });
     } finally {
+      navigate("/ai-results", { replace: true });
       setIsLoading(false);
       event.currentTarget.value = "";
     }
@@ -244,7 +232,7 @@ export default function Catalog() {
       />
       <button
         type="button"
-        onClick={handleCameraClick}
+        onClick={() => fileInputRef.current?.click()}
         className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#556B2F] text-white shadow-lg transition-transform active:scale-95"
         aria-label="ИИ-камера"
       >
